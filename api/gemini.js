@@ -26,6 +26,7 @@ export default async function handler(req, res) {
         parts: [{ text: m.text }]
       }));
 
+    // Ensure conversation turns start with user if history begins with model welcome
     while (cleanHistory.length > 0 && cleanHistory[0].role === 'model') {
       cleanHistory.shift();
     }
@@ -66,9 +67,7 @@ export default async function handler(req, res) {
 
     let parsed = {};
     try {
-      const cleaned = rawText.replace(/^
-```json\s*/i, '').replace(/
-```\s*$/i, '').trim();
+      const cleaned = rawText.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim();
       parsed = JSON.parse(cleaned);
     } catch (_parseErr) {
       parsed = { text: rawText };
