@@ -1112,11 +1112,17 @@ section {
   padding-bottom: 10px;
   margin-bottom: 12px;
   border-bottom: 1px solid var(--gold-line);
+  gap: 10px;
 }
 
 .modal.chat-popover .modal-header h3 {
   font-size: 18px;
   letter-spacing: 0.01em;
+  min-width: 0;
+}
+
+.modal.chat-popover .close-btn {
+  flex-shrink: 0;
 }
 
 .modal.chat-popover.open {
@@ -1574,10 +1580,14 @@ section {
   display: flex;
   gap: 8px;
   margin-bottom: 0;
+  width: 100%;
+  min-width: 0;
 }
 
 .chat-input-row input {
-  flex: 1;
+  flex: 1 1 0%;
+  min-width: 0;
+  width: 100%;
   min-height: 42px;
   padding: 8px 12px;
   border-radius: 8px;
@@ -2567,37 +2577,12 @@ function closeOverlays() {
 const chatSession = {
   activeMode: 'stylist',
   stylistCtx: { zodiacId: null, moodId: null, relation: null },
-  faq: [{
-    isWelcome: true,
-    sender: 'bot',
-    text: ''
-  }],
-  stylist: [{
-    isWelcome: true,
-    sender: 'bot',
-    text: ''
-  }],
+  faq: [],
+  stylist: [],
   render: null
 };
 
-function getChatWelcomeText(mode, lang) {
-  if (mode === 'faq') {
-    return lang === 'ka'
-      ? 'გამარჯობა! მე ვარ TAİ-ს Gemini ასისტენტი. მკითხე ზომებზე, აბრეშუმის მოვლაზე, მიწოდებაზე, გადახდაზე ან ჩვენს სივრცეებზე.'
-      : 'Hello! I am TAİ’s Gemini Assistant. Ask me about sizes, silk care, delivery, payment, or our locations.';
-  }
-  return lang === 'ka'
-    ? 'გამარჯობა! მე ვარ TAİ-ს Gemini სტილისტი. მითხარი ვისთვის ეძებ საჩუქარს, რომელი ზოდიაქოს ნიშანია და რა ფერის განწყობა უყვარს — შეგირჩევ შარფს და მილოცვის ტექსტსაც დაგიწერ.'
-    : 'Hello! I am TAİ’s Gemini Stylist. Tell me who the gift is for, their zodiac sign, and preferred color mood — I will match a scarf and write a greeting note.';
-}
-
 function syncChatLanguage() {
-  if (chatSession.faq[0]?.isWelcome) {
-    chatSession.faq[0].text = getChatWelcomeText('faq', state.lang);
-  }
-  if (chatSession.stylist[0]?.isWelcome) {
-    chatSession.stylist[0].text = getChatWelcomeText('stylist', state.lang);
-  }
   const modal = document.getElementById('ai-modal');
   if (modal && modal.classList.contains('open') && modal.classList.contains('chat-popover') && typeof chatSession.render === 'function') {
     chatSession.render();
@@ -2621,8 +2606,6 @@ function openAiModal(modeOrTitle) {
     modal.classList.add('open');
 
     chatSession.activeMode = modeOrTitle;
-    if (!chatSession.faq[0].text) chatSession.faq[0].text = getChatWelcomeText('faq', state.lang);
-    if (!chatSession.stylist[0].text) chatSession.stylist[0].text = getChatWelcomeText('stylist', state.lang);
 
     const stylistCtx = chatSession.stylistCtx;
     const chatState = chatSession;
@@ -2647,7 +2630,7 @@ function openAiModal(modeOrTitle) {
     function fallbackFaq(query) {
       const q = query.toLowerCase();
       const ka = state.lang === 'ka';
-      if (/^(გამარჯ|სალამ|ჰეი|დილა|საღამ|hello|hi|hey)\b/.test(q.trim())) {
+      if (/^(გამარჯ|სალამ|ჰეი|დილა|საღამ|(hello|hi|hey)(?![a-z]))/.test(q.trim())) {
         return ka
           ? 'გამარჯობა! 💜 რით შემიძლია დაგეხმარო? მკითხე აბრეშუმზე, ზომებზე, ფასებზე, მიწოდებაზე, გადახდაზე, ვაუჩერზე ან ჩვენს სივრცეებზე.'
           : 'Hello! 💜 How can I help you today? Ask about our silk, sizes, prices, delivery, payment, gift cards, or locations.';
@@ -2695,6 +2678,13 @@ function openAiModal(modeOrTitle) {
     function fallbackStylist(query) {
       const q = query.toLowerCase();
       const ka = state.lang === 'ka';
+      if (/^(გამარჯ|სალამ|ჰეი|დილა|საღამ|(hello|hi|hey)(?![a-z]))/.test(q.trim())) {
+        return {
+          text: ka
+            ? 'გამარჯობა! 💜 მე ვარ TAİ-ს Gemini სტილისტი. მითხარი, ვისთვის ეძებ საჩუქარს, რომელი ზოდიაქოს ნიშანია და რა ფერის განწყობა უყვარს — შეგირჩევ შარფს და მილოცვის ტექსტსაც დაგიწერ.'
+            : 'Hello! 💜 I am TAİ’s Gemini Stylist. Tell me who the gift is for, their zodiac sign, and preferred color mood — I will match a scarf and write a greeting note.'
+        };
+      }
       const zPatterns = [
         ['aries', /ვერძ|aries/], ['taurus', /კურო|taurus/], ['gemini', /ტყუპ|gemini/],
         ['cancer', /კირჩხიბ|cancer/], ['leo', /ლომ|leo/], ['virgo', /ქალწულ|virgo/],
@@ -2715,7 +2705,7 @@ function openAiModal(modeOrTitle) {
       if (!stylistCtx.zodiacId) {
         return {
           text: ka
-            ? 'სიამოვნებით შეგირჩევ! მითხარი, რომელი ზოდიაქოს ნიშანია ადრესატი და რა ფერის განწყობა უყვარს (ან აირჩიე ქვემოთ).'
+            ? 'სიამოვნებით შეგირჩევ! მითხარი, რომელი ზოდიაქოს ნიშანია ადრესატი და რა ფერის განწყობა უყვარს.'
             : 'Happy to curate a piece for you! Which zodiac sign is the gift for, and what color mood do they love?'
         };
       }
@@ -2780,13 +2770,6 @@ function openAiModal(modeOrTitle) {
       const currentT = I18N[state.lang];
       titleEl.textContent = chatSession.activeMode === 'faq' ? currentT.aiFaqTitle : currentT.aiStylistTitle;
       const msgs = chatState[chatSession.activeMode];
-      const quickChips = chatSession.activeMode === 'faq'
-        ? (state.lang === 'ka'
-          ? ['აბრეშუმის მოვლა', 'ზომები და ფასები', 'მიწოდება და გადახდა', 'ადგილზე ნახვა']
-          : ['Silk Care', 'Sizes & Prices', 'Delivery & Pay', 'In-Person Corners'])
-        : (!stylistCtx.zodiacId
-          ? (state.lang === 'ka' ? ['ვერძი', 'ლომი', 'სასწორი', 'თევზები'] : ['Aries', 'Leo', 'Libra', 'Pisces'])
-          : (state.lang === 'ka' ? ['ცისკრის სპილოსძვლისფერი', 'ლავანდის ბურუსი', 'შამპანურის აბრეშუმი', 'ბოტანიკური სალბი'] : ['Dawn Ivory', 'Lavender Mist', 'Champagne Silk', 'Sage Botanical']));
 
       const inputPh = state.lang === 'ka' ? 'დაწერე კითხვა...' : 'Ask a question...';
       const sendLabel = state.lang === 'ka' ? 'გაგზავნა' : 'Send';
@@ -2822,9 +2805,6 @@ function openAiModal(modeOrTitle) {
               </div>` : ''}
             </div>`;
           }).join('')}
-        </div>
-        <div class="chat-quick-bar">
-          ${quickChips.map((c) => `<button type="button" class="ai-chip" data-quick="${c}" title="${c}">${c}</button>`).join('')}
         </div>
         <form id="chat-form" class="chat-input-row" onsubmit="return false;">
           <input type="text" id="chat-input" placeholder="${inputPh}" autocomplete="off" enterkeyhint="send" />
@@ -2883,10 +2863,6 @@ function openAiModal(modeOrTitle) {
           }
         });
       }
-
-      contentEl.querySelectorAll('[data-quick]').forEach((btn) => {
-        btn.addEventListener('click', () => handleSend(btn.getAttribute('data-quick')));
-      });
 
       contentEl.querySelectorAll('[data-rec-add]').forEach((btn) => {
         btn.addEventListener('click', () => {
